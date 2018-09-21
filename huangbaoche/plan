@@ -1,0 +1,133 @@
+数据可能不完整
+
+用户个人信息：userProfile_***.csv  （***表示train或者test，下同）
+	用户id、性别、省份、年龄段
+	userid,gender,province,age
+	100000000127,,上海, 
+	100000000231,男,北京,70后
+
+用户行为信息：action_***.csv
+	用户id，行为类型，发生时间
+	userid,actionType,actionTime
+	100000000111,1,1490971433
+	行为类型一共有9个
+		唤醒app
+		2~4是浏览产品,无先后关系
+		5~9则是有先后关系的，从填写表单到提交订单再到最后支付	
+用户历史订单数据：orderHistory_***.csv 
+	用户id，订单id，订单时间，订单类型,旅游城市，国家，大陆
+	1表示购买了精品旅游服务，0表示普通旅游服务
+	userid,orderid,orderTime,orderType,city,country,continent 
+	100000000371, 1000709,1503443585,0,东京,日本,亚洲
+	一个用户可能会有多个订单
+	需要预测的是用户最近一次订单的类型；
+	此文件给到的订单记录都是在“被预测订单”之前的记录信息！同一时刻可能有多个订单，属于父订单和子订单的关系 
+
+评论数据：userComment_***.csv
+	用户id，订单id，评分，标签，评论内容
+	userid,orderid,rating,tags,commentsKeyWords
+	100000550471, 1001899,5.0,
+	10044000637, 1001930,5.0,主动热情|提前联系|景点介绍详尽|耐心等候, 
+	111333446057, 1001960,5.0,主动热情|耐心等候,['平稳', '很好']
+
+待预测订单的数据：orderFuture_***.csv 
+	train:
+		有两列,分别是用户id和订单类型
+		1表示购买了精品旅游服务，0表示未购买精品旅游服务（包括普通旅游服务和未下订单）
+		userid,orderType 
+		102040050111,0
+---------------------------------------------
+计划:
+	先看懂example
+		离最近的9的距离:最后一个9到最后一个type中间间隔了几个type
+	实现别人的example\
+		//userid->x(特征)->y(是否精品旅游)		
+		//学习pandas	
+			可用的function
+				设置索引	set_index
+				索引排序    sort_index()
+				max,mean取均值
+				空的记录，也就是值为 NaN 的记录
+				合并数据集 merge	
+				plot 函数作图
+				保存数据集合 df.to_csv('uk_rain.csv')
+		提取特征
+				//边写边学
+				data:
+					用户id、性别、省份、年龄段 
+					用户id，行为类型，发生时间
+					用户id，订单id，订单时间，订单类型，旅游城市，国家，大陆
+					用户id，订单id，评分，标签，评论内容
+					有两列,分别是用户id和订单类型
+				features:
+					#用户行为1~9的总次数
+					#用户购买0,1服务的总次数,是否购买过0,1服务
+					#用户历史评分平均值
+					#最近1，2,3,5,8,13,30,60,90天内actionType 1~9次数
+					#最后一次action的type
+					#离最近的3、5、8、9的距离
+					#最后一次order的type
+					#orderTime的时间间隔的最小值、均值、方差、最后四个时间间隔值、最后四个时间间隔均值、方差
+					#离最近的1、2、3、4、5、6、7、8、9的时间										//学习XGboost的使用
+		学习GBDT
+		学习matplotlib
+	在本地训练
+	看看效果
+	改进(去掉无用数据|修改参数权重|分析数据之间的关系|可视化工具)	
+	跑学长的model,提交
+	添加自己的特征,比较训练效果
+	改进				
+		根据小时action type
+		根据时间改进(年，月) order type				
+		中位数,众数,四分位数 action order
+		action:
+			//action (1-4的总数) (5-9)的总数
+			//action (5-9次数) / (1-4)次数
+			action (9次数) / (1-4)次数
+			//根据时间改进(年,月) action type													
+		//省份,性别，年龄(one - hot)
+		//用户历史评分的最小值和最大值 方差
+		交叉特征(加减乘除)
+			action&&order&&order_future
+			action&&order_history
+				//true的次数/action 的总数
+				true的次数/action 9的次数(总数,一周内)				
+				...
+			action&&order_future
+				true的次数/action 9的次数(总数,一周内)				
+				true的次数/action 1-4的次数(总数,一周内)				
+				true的次数/action 1-8的次数(总数,一周内)
+				...							
+			order&&order_future				
+				true的次数/true的次数				
+			comment&&order											
+		//评论内容(包括标签)的多少
+		//评论内容的多少 * (评分- 阈值2.5) > 0 ? 1 : -1 均值  max min						
+		看代码,order和action表，找新的特征
+			orderhistory:计算1和0的次数和占比，国家和地区的相关特征
+			comment value主要计算rating的相关特征
+			action
+				获取type和time的相关特征
+					最后6个
+					最后6个的间隔的相关特征
+					type5 到 type6的距离
+			baseline6改进：
+				添加多组action type之间的距离和交叉特征(如:type4_to_type5等等)
+				添加order和action的交叉特征
+					order为1的前后1天(或者1小时,1周)action次数,type,最后一次的 action type，type之间的时间间隔
+					order为1占action type(1,2,3,4,5,6,7,8,9)总数的比例
+
+		训练，看效果
+		看一下action和order的特征交叉分布图
+		基础特征
+		feacross
+		ysm
+--------------------------------------------
+问题：
+	NAN的处理
+		1. XGBoost本身支持nan, 在dtrain = xgb.DMatrix( data, label=label, missing = -999.0, weight=w), 如果你的输入中空值已经替换成-999就这样写，如果是nan就改成missing=np.nan
+		2.填充值,对于category特征一般填众数，也就是出现次数最多的那一类；对于数值型特征，可以填中位数，平均数，具体看效果
+	如果用户action少于三次怎么办
+	离最近的9的距离???	
+	评论可能也会影响
+	代码相关：
